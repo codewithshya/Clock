@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Analog Watch - Hindi</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+      margin: 0;
+      perspective: 1000px;
+      flex-direction: column;
+    }
+
+    #clock {
+      font-size: 3em;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    #qrcode img {
+      margin-top: 20px;
+      border: 1px solid black; /* Debugging ke liye border add karein */
+    }
+
+    .watch {
+      width: 350px;
+      height: 350px;
+      border: 15px solid #333;
+      border-radius: 50%;
+      position: relative;
+      background: radial-gradient(circle, #fff, #f0f0f0);
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transform-style: preserve-3d;
+    }
+
+    .watch::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .hand {
+      position: absolute;
+      background-color: #333;
+      transform-origin: bottom center;
+      border-radius: 5px;
+      transition: transform 0.5s cubic-bezier(0.4, 2.3, 0.6, 1);
+      cursor: pointer;
+    }
+
+    .hour {
+      width: 10px;
+      height: 80px;
+      top: 85px;
+      left: 170px;
+      background: linear-gradient(to top, #ff6f61, #ff4444);
+      box-shadow: 0 0 10px rgba(255, 111, 97, 0.8);
+    }
+
+    .minute {
+      width: 6px;
+      height: 120px;
+      top: 45px;
+      left: 172px;
+      background: linear-gradient(to top, #6b5b95, #4b3f72);
+      box-shadow: 0 0 10px rgba(107, 91, 149, 0.8);
+    }
+
+    .second {
+      width: 3px;
+      height: 140px;
+      top: 25px;
+      left: 173.5px;
+      background: linear-gradient(to top, #88d8b0, #55c57a);
+      box-shadow: 0 0 10px rgba(136, 216, 176, 0.8);
+      transition: transform 0.2s cubic-bezier(0.4, 2.3, 0.6, 1);
+    }
+
+    .center-circle {
+      width: 20px;
+      height: 20px;
+      background-color: #333;
+      border-radius: 50%;
+      position: absolute;
+      top: 165px;
+      left: 165px;
+      z-index: 10;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .number {
+      position: absolute;
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+      text-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+      transform-style: preserve-3d;
+    }
+
+    .twelve { top: 15px; left: 50%; transform: translateX(-50%); color: #ff6f61; }
+    .one { top: 10%; right: 25%; transform: translateY(-50%); color: #6b5b95; }
+    .two { top: 25%; right: 10%; transform: translateY(-50%); color: #88d8b0; }
+    .three { top: 50%; right: 15px; transform: translateY(-50%); color: #ff6f61; }
+    .four { bottom: 25%; right: 10%; transform: translateY(-50%); color: #6b5b95; }
+    .five { bottom: 10%; right: 25%; transform: translateY(-50%); color: #88d8b0; }
+    .six { bottom: 15px; left: 50%; transform: translateX(-50%); color: #ff6f61; }
+    .seven { bottom: 10%; left: 25%; transform: translateY(-50%); color: #6b5b95; }
+    .eight { bottom: 25%; left: 10%; transform: translateY(-50%); color: #88d8b0; }
+    .nine { top: 50%; left: 15px; transform: translateY(-50%); color: #ff6f61; }
+    .ten { top: 25%; left: 10%; transform: translateY(-50%); color: #6b5b95; }
+    .eleven { top: 10%; left: 25%; transform: translateY(-50%); color: #88d8b0; }
+
+    .tick {
+      position: absolute;
+      width: 2px;
+      height: 10px;
+      background-color: #333;
+      top: 0;
+      left: 50%;
+      transform-origin: bottom center;
+    }
+
+    .glass {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+      box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.5);
+    }
+
+    .alarm-section {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .alarm-section input {
+      padding: 10px;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+
+    .alarm-section button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #6b5b95;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .alarm-section button:hover {
+      background-color: #4b3f72;
+    }
+
+    .stop-alarm {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #ff4444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      display: none;
+    }
+
+    .stop-alarm:hover {
+      background-color: #cc0000;
+    }
+  </style>
+</head>
+<body>
+    <div id="clock"></div>
+    <div id="qrcode"></div> <!-- QR Code Container -->
+    <div class="watch">
+    <!-- Minute Ticks -->
+    <div class="tick" style="transform: rotate(0deg);"></div>
+    <div class="tick" style="transform: rotate(30deg);"></div>
+    <div class="tick" style="transform: rotate(60deg);"></div>
+    <div class="tick" style="transform: rotate(90deg);"></div>
+    <div class="tick" style="transform: rotate(120deg);"></div>
+    <div class="tick" style="transform: rotate(150deg);"></div>
+    <div class="tick" style="transform: rotate(180deg);"></div>
+    <div class="tick" style="transform: rotate(210deg);"></div>
+    <div class="tick" style="transform: rotate(240deg);"></div>
+    <div class="tick" style="transform: rotate(270deg);"></div>
+    <div class="tick" style="transform: rotate(300deg);"></div>
+    <div class="tick" style="transform: rotate(330deg);"></div>
+
+    <!-- Watch Hands -->
+    <div class="hand hour" id="hour-hand"></div>
+    <div class="hand minute" id="minute-hand"></div>
+    <div class="hand second" id="second-hand"></div>
+
+    <!-- Center Circle -->
+    <div class="center-circle"></div>
+
+    <!-- Numbers (1 to 12) -->
+    <div class="number twelve">12</div>
+    <div class="number one">1</div>
+    <div class="number two">2</div>
+    <div class="number three">3</div>
+    <div class="number four">4</div>
+    <div class="number five">5</div>
+    <div class="number six">6</div>
+    <div class="number seven">7</div>
+    <div class="number eight">8</div>
+    <div class="number nine">9</div>
+    <div class="number ten">10</div>
+    <div class="number eleven">11</div>
+
+    <!-- Glass Effect -->
+    <div class="glass"></div>
+  </div>
+
+  <!-- Alarm Section -->
+  <div class="alarm-section">
+    <input type="time" id="alarm-time" required>
+    <button onclick="setAlarm()">Set Alarm</button>
+    <button class="stop-alarm" onclick="stopAlarm()">Stop Alarm</button>
+  </div>
+
+  <!-- Audio for Alarm Sound -->
+  <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/2997/2997-preview.mp3"></audio>
+  <!-- JavaScript -->
+  <script>
+     const hourHand = document.getElementById('hour-hand');
+    const minuteHand = document.getElementById('minute-hand');
+    const secondHand = document.getElementById('second-hand');
+    const alarmSound = document.getElementById('alarm-sound');
+    const alarmTimeInput = document.getElementById('alarm-time');
+    const stopAlarmButton = document.querySelector('.stop-alarm');
+
+    let alarmTime = null;
+    let alarmInterval = null;
+
+    // Function to speak the current time in Hindi
+    function speakTime() {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const speech = `समय है ${hours % 12 || 12} बजकर ${minutes} मिनट`;
+      const utterance = new SpeechSynthesisUtterance(speech);
+      utterance.lang = 'hi-IN';
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Function to update watch hands
+    function updateWatch() {
+      const now = new Date();
+      const hours = now.getHours() % 12;
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+
+      const hourDeg = (hours * 30) + (minutes * 0.5);
+      const minuteDeg = (minutes * 6) + (seconds * 0.1);
+      const secondDeg = seconds * 6;
+
+      hourHand.style.transform = `rotate(${hourDeg}deg)`;
+      minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+      secondHand.style.transform = `rotate(${secondDeg}deg)`;
+
+      if (alarmTime && now.getHours() === alarmTime.hours && now.getMinutes() === alarmTime.minutes) {
+        startAlarm();
+      }
+    }
+
+    // Function to start the alarm
+    function startAlarm() {
+      alarmSound.loop = true;
+      alarmSound.play();
+      stopAlarmButton.style.display = 'block';
+      alarmInterval = setTimeout(() => {
+        stopAlarm();
+      }, 10 * 60 * 1000);
+    }
+
+    // Function to stop the alarm
+    function stopAlarm() {
+      alarmSound.pause();
+      alarmSound.currentTime = 0;
+      stopAlarmButton.style.display = 'none';
+      clearTimeout(alarmInterval);
+      alarmTime = null;
+    }
+
+    // Function to set alarm
+    function setAlarm() {
+      const time = alarmTimeInput.value;
+      if (!time) {
+        alert('Please select a valid time.');
+        return;
+      }
+
+      const [hours, minutes] = time.split(':');
+      alarmTime = { hours: parseInt(hours), minutes: parseInt(minutes) };
+      alert(`Alarm set for ${time}`);
+    }
+
+    // Add event listener to speak time on double-click
+    document.querySelector('.watch').addEventListener('dblclick', speakTime);
+
+    setInterval(updateWatch, 1000);
+    updateWatch();
+
+    function updateClock() {
+      let now = new Date();
+      let hours = now.getHours().toString().padStart(2, '0');
+      let minutes = now.getMinutes().toString().padStart(2, '0');
+      let seconds = now.getSeconds().toString().padStart(2, '0');
+      document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Function to generate QR code using QR Code Monkey API
+    function generateQRCode() {
+      const qrcodeContainer = document.getElementById("qrcode");
+
+      // File ka direct link (aapka uploaded file ka link)
+      const fileLink = "https://gist.githubusercontent.com/username/gist_id/raw/...";
+
+      // QR Code Monkey API ka use karke QR code generate karein
+      const apiUrl = `https://api.qrcode-monkey.com/qr/custom?data=${encodeURIComponent(fileLink)}&size=150`;
+
+      // Create an image element
+      const img = document.createElement("img");
+      img.src = apiUrl;
+      img.alt = "QR Code";
+
+      // Clear previous QR code (if any)
+      qrcodeContainer.innerHTML = "";
+
+      // Append the QR code image to the container
+      qrcodeContainer.appendChild(img);
+    }
+
+    // Generate QR code on page load
+    generateQRCode();
+  </script>
+</body>
+</html>
