@@ -1,0 +1,174 @@
+{% extends 'base.html' %} 
+
+{% block body %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Recorder</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1f1c2c, #928dab);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+        }
+        .recorder-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        .btn-custom {
+            width: 220px;
+            padding: 12px;
+            font-size: 18px;
+            border-radius: 30px;
+            transition: 0.3s;
+        }
+        .btn-custom:hover {
+            transform: scale(1.1);
+        }
+        .recording {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 10px red; }
+            50% { box-shadow: 0 0 20px red; }
+            100% { box-shadow: 0 0 10px red; }
+        }
+        @media (max-width: 768px) {
+            .recorder-box {
+                padding: 15px;
+            }
+            .btn-custom {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="recorder-box">
+                    <h2><i class="fa-solid fa-radio"></i> Audio Recorder</h2>
+                    <button id="startRecord" class="btn btn-outline-primary btn-lg btn-custom">
+                        <i class="fas fa-microphone"></i> Start Recording
+                    </button>
+                    <button id="stopRecord" class="btn btn-outline-danger btn-lg btn-custom mt-3" disabled>
+                        <i class="fas fa-stop"></i> Stop Recording
+                    </button>
+                    <audio id="audioPlayback" controls class="mt-3 w-100"></audio>
+                    <button id="downloadAudio" class="btn btn-success mt-3" disabled>Download</button>
+                </div>
+                <h3 class="mt-5">Recording History</h3>
+                <ul id="historyList" class="list-group"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+let db;
+let mediaRecorder;
+let audioChunks = [];
+
+// ✅ IndexedDB Database Open
+const request = indexedDB.open("AudioDatabase", 1);
+
+request.onupgradeneeded = function (event) {
+    let db = event.target.result;
+    if (!db.objectStoreNames.contains('recordings')) {
+        db.createObjectStore('recordings', { keyPath: 'id', autoIncrement: true });
+    }
+};
+
+request.onsuccess = function (event) {
+    db = event.target.result;
+    loadRecordings(); // ✅ Page load hone par history fetch karega
+};
+
+// ✅ Recording Start
+document.getElementById('startRecord').addEventListener('click', async () => {
+    try {
+        let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];  // 🔹 Fix: Pichli recording remove karein
+
+        mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+        mediaRecorder.start();
+
+        document.getElementById('startRecord').disabled = true;
+        document.getElementById('stopRecord').disabled = false;
+    } catch (error) {
+        alert('Microphone access denied! Please allow microphone access.');
+    }
+});
+
+// ✅ Recording Stop aur IndexedDB me Save
+document.getElementById('stopRecord').addEventListener('click', () => {
+    mediaRecorder.stop();
+    mediaRecorder.onstop = async () => {
+        let audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+
+        let transaction = db.transaction(["recordings"], "readwrite");
+        let store = transaction.objectStore("recordings");
+
+        // ✅ Har baar alag alag recording save hogi
+        store.add({ id: Date.now(), audioData: audioBlob });
+
+        loadRecordings();  // ✅ UI update karega
+        document.getElementById('startRecord').disabled = false;
+        document.getElementById('stopRecord').disabled = true;
+    };
+});
+
+// ✅ Recording History Load (Refresh hone ke baad bhi data show hoga)
+function loadRecordings() {
+    let historyList = document.getElementById('historyList');
+    historyList.innerHTML = '';
+
+    let transaction = db.transaction(["recordings"], "readonly");
+    let store = transaction.objectStore("recordings");
+    let request = store.getAll();
+
+    request.onsuccess = function (event) {
+        let recordings = event.target.result;
+        recordings.forEach(recording => {
+            let li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+
+            let audio = document.createElement('audio');
+            let audioURL = URL.createObjectURL(recording.audioData);
+            audio.src = audioURL;
+            audio.controls = true;
+
+            let deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger btn-sm';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.onclick = () => deleteRecording(recording.id);
+
+            li.appendChild(audio);
+            li.appendChild(deleteBtn);
+            historyList.appendChild(li);
+        });
+    };
+}
+
+// ✅ Recording Delete
+function deleteRecording(id) {
+    let transaction = db.transaction(["recordings"], "readwrite");
+    let store = transaction.objectStore("recordings");
+    store.delete(id);
+    loadRecordings();
+}
+
+    </script>
+</body>
+</html>
+
+{% endblock %}
